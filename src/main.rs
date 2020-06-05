@@ -8,6 +8,7 @@ use image::*;
 use std::env;
 
 mod stage;
+mod step;
 
 const SIZE: f64 = 80.0;
 const PADDING: f64 = 10.0;
@@ -39,6 +40,15 @@ fn main() {
     base[y][x] = 1;
   }
 
+  // テスト
+  base[0][1] = 2;
+  base[0][2] = 4;
+  base[1][1] = 8;
+  base[1][2] = 16;
+  base[1][3] = 32;
+  base[1][4] = 64;
+  base[1][5] = 128;
+
   let opengl = OpenGL::V3_2;
   let mut window: PistonWindow = WindowSettings::new("2048 Insane", (600, 600))
     .graphics_api(opengl)
@@ -58,7 +68,8 @@ fn main() {
           for columns in 0 .. WIDTH {
             // 奇数は現れない性質を利用して
             // 1を壁の判定とする
-            if base[rows][columns] != 1 {
+            let number = base[rows][columns];
+            if number != 1 {
               let x = WINDOW_SIZE as f64 / 2.0 + (columns as f64 - WIDTH as f64 / 2.0) * (SIZE - PADDING);
               let y = WINDOW_SIZE as f64 / 2.0 + (rows as f64 - HEIGHT as f64 / 2.0) * (SIZE - PADDING);
 
@@ -72,7 +83,16 @@ fn main() {
 
               // 内側
               rectangle(
-                [0.803, 0.752, 0.705, 1.0],
+                match number {
+                  2 => [0.933, 0.894, 0.854, 1.0],
+                  4 => [0.929, 0.878, 0.784, 1.0],
+                  8 => [0.949, 0.694, 0.474, 1.0],
+                  16 => [0.956, 0.584, 0.388, 1.0],
+                  32 => [0.964, 0.482, 0.372, 1.0],
+                  64 => [0.964, 0.368, 0.235, 1.0],
+                  128 => [0.929, 0.811, 0.443, 1.0],
+                  _ => [0.803, 0.752, 0.705, 1.0]
+                },
                 rectangle::square(0.0, 0.0, SIZE - PADDING * 2.0),
                 c.transform.trans(x + PADDING / 1.5, y + PADDING / 1.5),
                 g
@@ -86,7 +106,15 @@ fn main() {
     // キー入力イベント
     if let Some(args) = e.button_args() {
       if args.state == ButtonState::Press {
-        println!("pressed key {:?}" , &args.button);
+        // println!("pressed key {:?}" , &args.button);
+
+        step::next(&base, match &args.button {
+          Button::Keyboard(Key::Left) => 0,
+          Button::Keyboard(Key::Up) => 1,
+          Button::Keyboard(Key::Right) => 2,
+          Button::Keyboard(Key::Down) => 3,
+          _ => 4 // Invalid
+        });
       }
     }
   }
