@@ -2,6 +2,7 @@ extern crate piston_window;
 extern crate find_folder;
 extern crate freetype;
 
+use std::time::{Duration, SystemTime};
 use piston::input::*;
 use piston_window::*;
 use image::*;
@@ -49,6 +50,11 @@ fn main() {
   base[1][4] = 64;
   base[1][5] = 128;
 
+  // 連続したキー入力を防ぐ（誤操作を防ぐ、負荷をかけない目的）
+  let mut key_buffer: u128 = 0;
+  let mut key_flag: bool = true;
+
+  // Windowを生成する
   let opengl = OpenGL::V3_2;
   let mut window: PistonWindow = WindowSettings::new("2048 Insane", (600, 600))
     .graphics_api(opengl)
@@ -108,13 +114,30 @@ fn main() {
       if args.state == ButtonState::Press {
         // println!("pressed key {:?}" , &args.button);
 
-        step::next(&base, match &args.button {
+        let dir = match &args.button {
           Button::Keyboard(Key::Left) => 0,
           Button::Keyboard(Key::Up) => 1,
           Button::Keyboard(Key::Right) => 2,
           Button::Keyboard(Key::Down) => 3,
-          _ => 4 // Invalid
-        });
+          _ => 4 // Other
+        };
+
+        if dir < 4 {
+          match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(n) => {
+              let now = n.as_millis();
+              let diff = now - key_buffer;
+
+              if diff >= 100 {
+                key_buffer = now;
+                step::next(&base, dir);
+              }
+            },
+
+            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+          };
+
+        }
       }
     }
   }
